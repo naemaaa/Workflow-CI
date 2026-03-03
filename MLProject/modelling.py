@@ -364,9 +364,10 @@ def log_to_mlflow(model, model_name, y_test, y_prob, y_pred_opt,
                                           safe_name, output_dir)
         if fi_path: artifacts.append(fi_path)
 
-        shap_bar, shap_bee = save_shap(model, X_test.iloc[:100], safe_name, output_dir)
-        for p in [shap_bar, shap_bee]:
-            if p: artifacts.append(p)
+        # SHAP - Skip in CI to avoid timeout
+        # shap_bar, shap_bee = save_shap(model, X_test.iloc[:100], safe_name, output_dir)
+        # for p in [shap_bar, shap_bee]:
+        #     if p: artifacts.append(p)
 
         # Optuna summary JSON
         summary = {
@@ -474,7 +475,15 @@ def main():
         print(f"  {model_name:<20} ROC AUC: {res['roc_auc']:.4f}  "
               f"F1: {res['f1']:.4f}  Recall: {res['recall']:.4f}")
     print(f"\n  Artefak tersimpan di: {args.output_dir}/")
+    print("  ✅ Done! Script selesai tanpa error.")
+    sys.stdout.flush()
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\n❌ ERROR di main: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

@@ -14,7 +14,7 @@ on:
       n_trials:
         description: 'Optuna trials'
         required: true
-        default: '5'
+        default: '1'
 
 jobs:
   train:
@@ -71,10 +71,16 @@ jobs:
           cd MLProject
           mlflow run . --experiment-name "Sepsis_ICU_CI" --env-manager=local \
             -P model_type=${{ github.event.inputs.model_type || 'xgboost' }} \
-            -P n_trials=${{ github.event.inputs.n_trials || '5' }} \
+            -P n_trials=${{ github.event.inputs.n_trials || '1' }} \
             -P data_dir=sepsis_preprocessing \
             -P output_dir=../artifacts \
             -P no_dagshub=false
+
+      - name: Debug Artifacts
+        run: |
+          echo "Checking artifacts..."
+          ls -la artifacts || echo "Artifacts folder gak ada"
+          ls -la MLProject/mlruns || echo "MLflow runs gak ada"
 
       - name: Get latest MLflow run_id
         run: |
@@ -87,18 +93,17 @@ jobs:
             echo "⚠️ No mlruns directory found"
           fi
 
-      - name: Upload to Google Drive
-        env:
-          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
-        run: |
-          if [ -z "$RCLONE_CONFIG" ]; then
-            echo "ℹ️ Skipping Google Drive (no RCLONE_CONFIG secret)"
-            exit 0
-          fi
-          curl https://rclone.org/install.sh | sudo bash || true
-          mkdir -p ~/.config/rclone
-          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
-          rclone copy MLProject/mlruns gdrive:Sepsis_ICU_MLflow/$(date +%Y%m%d_%H%M%S) --progress || echo "⚠️ Drive upload failed (continuing...)"
+      # Skip Google Drive for now - not required
+      # - name: Upload to Google Drive
+      #   env:
+      #     RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+      #   run: |
+      #     curl https://rclone.org/install.sh | sudo bash || true
+      #     mkdir -p ~/.config/rclone
+      #     if [ -n "$RCLONE_CONFIG" ]; then
+      #       echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+      #       rclone copy MLProject/mlruns gdrive:Sepsis_ICU_MLflow/$(date +%Y%m%d_%H%M%S) --progress || true
+      #     fi
 
       - name: Build Docker Model
         run: |
