@@ -29,6 +29,23 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 import shap
 
+if use_dagshub:
+    try:
+        import dagshub
+        dagshub.init(
+            repo_owner=args.dagshub_username or os.environ.get('MLFLOW_TRACKING_USERNAME', 'naemaaa'),  # Ganti 'naemaaa' kalau beda
+            repo_name=args.dagshub_repo or 'sepsis-ml',  # Ganti nama repo DagsHub-mu
+            mlflow=True
+        )
+        # Tambah ini:
+        os.environ['MLFLOW_TRACKING_USERNAME'] = os.environ.get('MLFLOW_TRACKING_USERNAME', args.dagshub_username)
+        os.environ['MLFLOW_TRACKING_PASSWORD'] = os.environ.get('DAGSHUB_TOKEN', '')
+        mlflow.set_tracking_uri(f"https://dagshub.com/{os.environ['MLFLOW_TRACKING_USERNAME']}/{args.dagshub_repo}.mlflow")
+        print(f" DagsHub: {os.environ['MLFLOW_TRACKING_USERNAME']}/{args.dagshub_repo}")
+        return True
+    except Exception as e:
+        print(f" DagsHub gagal ({e}), lanjut lokal...")
+
 # ── Argparse ──────────────────────────────────────────────────────────────────
 def parse_args():
     p = argparse.ArgumentParser(description='Sepsis ICU Model Training')
