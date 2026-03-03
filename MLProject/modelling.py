@@ -173,6 +173,14 @@ def save_threshold_plot(y_true, y_prob, name, output_dir):
 
 
 def save_shap(model, X_sample, name, output_dir):
+    # Skip SHAP in CI environment (saves time, fixes timeout)
+    if os.getenv('IS_CI', 'false').lower() == 'true':
+        print(f"  ⏭️  Skipping SHAP in CI (IS_CI=true)")
+        return None, None
+    
+    # Reduce sample size for speed (max 50)
+    X_sample = X_sample.iloc[:min(50, len(X_sample))]
+    
     try:
         explainer   = shap.TreeExplainer(model)
         shap_values = explainer.shap_values(X_sample)
@@ -194,7 +202,7 @@ def save_shap(model, X_sample, name, output_dir):
 
         return path_bar, path_bee
     except Exception as e:
-        print(f"  ⚠️  SHAP error: {e}")
+        print(f"  ⚠️  SHAP error: {e}, skipping SHAP plots")
         return None, None
 
 
@@ -460,6 +468,8 @@ def main():
     print("\n" + "="*65)
     print("  ✅ TRAINING SELESAI")
     print("="*65)
+    print("  Artifact saved! Ready for deployment 🚀")
+    sys.stdout.flush()
     for model_name, res in results.items():
         print(f"  {model_name:<20} ROC AUC: {res['roc_auc']:.4f}  "
               f"F1: {res['f1']:.4f}  Recall: {res['recall']:.4f}")
