@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/macmini/SMSML_Naimatul-Ulumiyah/Eksperimen_SML_Naimatul-Ulumiyah/Workflow-CI/MLProject/mlruns/548649318580318399/4c9398f8b0f04fbda560be209cee6bb5/artifacts
+end_time: 1772553138968
+entry_point_name: ''
+experiment_id: '548649318580318399'
+lifecycle_stage: active
+run_id: 4c9398f8b0f04fbda560be209cee6bb5
+run_name: XGBoost_Optuna
+run_uuid: 4c9398f8b0f04fbda560be209cee6bb5
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772553134779
+status: 3
+tags: []
+user_id: macmini

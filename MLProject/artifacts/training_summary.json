@@ -1,0 +1,8 @@
+{
+  "xgboost": {
+    "roc_auc": 1.0,
+    "f1": 1.0,
+    "recall": 1.0,
+    "run_id": "4c9398f8b0f04fbda560be209cee6bb5"
+  }
+}

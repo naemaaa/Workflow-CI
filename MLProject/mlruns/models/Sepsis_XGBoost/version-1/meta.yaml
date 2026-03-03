@@ -1,0 +1,14 @@
+aliases: []
+creation_timestamp: 1772553138963
+current_stage: None
+description: null
+last_updated_timestamp: 1772553138963
+name: Sepsis_XGBoost
+run_id: 4c9398f8b0f04fbda560be209cee6bb5
+run_link: null
+source: file:///Users/macmini/SMSML_Naimatul-Ulumiyah/Eksperimen_SML_Naimatul-Ulumiyah/Workflow-CI/MLProject/mlruns/548649318580318399/4c9398f8b0f04fbda560be209cee6bb5/artifacts/XGBoost_model
+status: READY
+status_message: null
+storage_location: file:///Users/macmini/SMSML_Naimatul-Ulumiyah/Eksperimen_SML_Naimatul-Ulumiyah/Workflow-CI/MLProject/mlruns/548649318580318399/4c9398f8b0f04fbda560be209cee6bb5/artifacts/XGBoost_model
+user_id: null
+version: 1
