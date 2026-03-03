@@ -41,6 +41,12 @@ jobs:
           pip install --upgrade pip
           pip install mlflow==2.19.0 scikit-learn xgboost imbalanced-learn optuna shap pandas numpy matplotlib seaborn dagshub psutil
 
+      - name: Run Preprocessing
+        run: |
+          cd MLProject
+          python preprocessing_ci.py --data_dir ./training_data --output_dir ./sepsis_preprocessing
+          ls -lh sepsis_preprocessing/
+
       - name: Set MLflow Tracking URI
         env:
           DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
@@ -56,7 +62,7 @@ jobs:
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           cd MLProject
-          mlflow run . --experiment-name "Sepsis_ICU_CI" --env-manager=local -P model_type=${{ github.event.inputs.model_type || 'xgboost' }} -P n_trials=${{ github.event.inputs.n_trials || '20' }} -P dagshub_username=${{ secrets.DAGSHUB_USERNAME }} -P dagshub_repo=${{ secrets.DAGSHUB_REPO }}
+          mlflow run . --experiment-name "Sepsis_ICU_CI" --env-manager=local -P model_type=${{ github.event.inputs.model_type || 'xgboost' }} -P n_trials=${{ github.event.inputs.n_trials || '20' }} -P no_dagshub=true
 
       - name: Get latest MLflow run_id
         run: |

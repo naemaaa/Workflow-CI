@@ -20,19 +20,9 @@ entry_points:
       model_type:
         type: str
         default: "xgboost"
-      dagshub_username:
-        type: str
-        default: ""
-      dagshub_repo:
-        type: str
-        default: ""
+      no_dagshub:
+        type: bool
+        default: true
 
-    command: >
-      python modelling.py
-      --n_estimators {n_estimators}
-      --max_depth {max_depth}
-      --learning_rate {learning_rate}
-      --n_trials {n_trials}
-      --model_type {model_type}
-      --dagshub_username {dagshub_username}
-      --dagshub_repo {dagshub_repo}
+    command: python modelling.py --n_estimators {n_estimators} --max_depth {max_depth} --learning_rate {learning_rate} --n_trials {n_trials} --model_type {model_type} --no_dagshub
+
