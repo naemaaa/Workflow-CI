@@ -61,9 +61,9 @@ def parse_args():
                    help='Folder berisi file CSV preprocessing')
     p.add_argument('--output_dir',       type=str,   default='./artifacts',
                    help='Folder output untuk artefak')
-    p.add_argument('--dagshub_username', type=str,   default='',
+    p.add_argument('--dagshub_username', type=str,   default='naemaaa',
                    help='DagsHub username (kosongkan untuk simpan lokal)')
-    p.add_argument('--dagshub_repo',     type=str,   default='',
+    p.add_argument('--dagshub_repo',     type=str,   default='Sepsis-ICU-MLflow',
                    help='DagsHub repository name')
     p.add_argument('--no_dagshub',       action='store_true',
                    help='Force simpan MLflow lokal')
