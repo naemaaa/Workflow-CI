@@ -20,9 +20,21 @@ entry_points:
       model_type:
         type: str
         default: "xgboost"
+      data_dir:
+        type: str
+        default: "sepsis_preprocessing"
+      output_dir:
+        type: str
+        default: "./artifacts"
       no_dagshub:
         type: bool
-        default: true
+        default: false
+      dagshub_username:
+        type: str
+        default: ""
+      dagshub_repo:
+        type: str
+        default: ""
 
-    command: python modelling.py --n_estimators {n_estimators} --max_depth {max_depth} --learning_rate {learning_rate} --n_trials {n_trials} --model_type {model_type} --no_dagshub
+    command: python modelling.py --n_estimators {n_estimators} --max_depth {max_depth} --learning_rate {learning_rate} --n_trials {n_trials} --model_type {model_type} --data_dir {data_dir} --output_dir {output_dir} --no_dagshub
 

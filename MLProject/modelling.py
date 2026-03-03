@@ -44,9 +44,9 @@ def parse_args():
                    help='Folder berisi file CSV preprocessing')
     p.add_argument('--output_dir',       type=str,   default='./artifacts',
                    help='Folder output untuk artefak')
-    p.add_argument('--dagshub_username', type=str,   default='',
-                   help='DagsHub username (kosongkan untuk simpan lokal)')
-    p.add_argument('--dagshub_repo',     type=str,   default='',
+    p.add_argument('--dagshub_username', type=str, default=os.getenv('DAGSHUB_USERNAME', ''),
+                   help='DagsHub username (ambil dari env kalau ada)')
+    p.add_argument('--dagshub_repo',     type=str, default=os.getenv('DAGSHUB_REPO', ''),
                    help='DagsHub repository name')
     p.add_argument('--no_dagshub',       action='store_true',
                    help='Force simpan MLflow lokal')
@@ -63,16 +63,28 @@ def setup_tracking(args):
     if use_dagshub:
         try:
             import dagshub
+            token = os.getenv('DAGSHUB_TOKEN', '')
+            # Set environment variables untuk auth tanpa browser
+            os.environ['MLFLOW_TRACKING_USERNAME'] = args.dagshub_username
+            os.environ['MLFLOW_TRACKING_PASSWORD'] = token
+            
+            # Set tracking URI dengan basic auth (important untuk CI!)
+            tracking_uri = f"https://{args.dagshub_username}:{token}@dagshub.com/{args.dagshub_username}/{args.dagshub_repo}.mlflow"
+            mlflow.set_tracking_uri(tracking_uri)
+            
             dagshub.init(
                 repo_owner=args.dagshub_username,
                 repo_name=args.dagshub_repo,
                 mlflow=True
             )
-            print(f"✅ DagsHub: {args.dagshub_username}/{args.dagshub_repo}")
+            print(f"✅ DagsHub connected: {args.dagshub_username}/{args.dagshub_repo}")
             return True
         except Exception as e:
             print(f"⚠️  DagsHub gagal ({e}), lanjut lokal...")
-    return False
+            return False
+    else:
+        print("ℹ️ Skip DagsHub — simpan lokal saja.")
+        return False
 
 
 # ── Load Data ──────────────────────────────────────────────────────────────────
