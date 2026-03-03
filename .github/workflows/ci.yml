@@ -1,0 +1,115 @@
+name: CI — Sepsis ICU MLflow Project
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      model_type:
+        description: 'Model type'
+        required: true
+        default: 'xgboost'
+        type: choice
+        options: [xgboost, random_forest]
+      n_trials:
+        description: 'Optuna trials'
+        required: true
+        default: '20'
+
+jobs:
+  train:
+    name: Train Model
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run actions/checkout@v3
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.12.7
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12.7'
+
+      - name: Check Env
+        run: |
+          python --version
+          pip --version
+          echo "Working dir: $(pwd)"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install mlflow==2.19.0 scikit-learn xgboost imbalanced-learn optuna shap pandas numpy matplotlib seaborn dagshub psutil
+
+      - name: Set MLflow Tracking URI
+        env:
+          DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          echo "MLFLOW_TRACKING_URI=https://dagshub.com/${{ secrets.DAGSHUB_USERNAME }}/${{ secrets.DAGSHUB_REPO }}.mlflow" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_USERNAME=${{ secrets.DAGSHUB_USERNAME }}" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_PASSWORD=${{ secrets.DAGSHUB_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Run mlflow project
+        env:
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          cd MLProject
+          mlflow run . --experiment-name "Sepsis_ICU_CI" --env-manager=local -P model_type=${{ github.event.inputs.model_type || 'xgboost' }} -P n_trials=${{ github.event.inputs.n_trials || '20' }} -P dagshub_username=${{ secrets.DAGSHUB_USERNAME }} -P dagshub_repo=${{ secrets.DAGSHUB_REPO }}
+
+      - name: Get latest MLflow run_id
+        run: |
+          cd MLProject
+          RUN_ID=$(find mlruns -name "meta.yaml" 2>/dev/null | xargs grep -l "run_id" 2>/dev/null | head -1 | xargs dirname | xargs basename 2>/dev/null || echo "no-run-id")
+          echo "MLFLOW_RUN_ID=$RUN_ID" >> $GITHUB_ENV
+          echo "Latest run ID: $RUN_ID"
+
+      - name: Install Python dependencies
+        run: |
+          pip install google-auth google-auth-httplib2 google-api-python-client
+
+      - name: Upload to Google Drive
+        env:
+          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+        run: |
+          curl https://rclone.org/install.sh | sudo bash 2>/dev/null || true
+          mkdir -p ~/.config/rclone
+          if [ -n "$RCLONE_CONFIG" ]; then
+            echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+            rclone copy MLProject/mlruns gdrive:Sepsis_ICU_MLflow/$(date +%Y%m%d_%H%M%S) --progress 2>/dev/null || true
+          else
+            echo "Skipping Google Drive - no config"
+          fi
+
+      - name: Build Docker Model
+        run: |
+          MODEL_PATH=$(find MLProject/mlruns -name "MLmodel" 2>/dev/null | head -1 | xargs dirname 2>/dev/null || echo "")
+          if [ -n "$MODEL_PATH" ]; then
+            mlflow models build-docker -m "$MODEL_PATH" -n ${{ secrets.DOCKER_USERNAME }}/sepsis-icu-model --enable-mlserver || true
+          else
+            docker build -t ${{ secrets.DOCKER_USERNAME }}/sepsis-icu-model:latest . || true
+          fi
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Tag Docker Image
+        run: |
+          docker tag ${{ secrets.DOCKER_USERNAME }}/sepsis-icu-model:latest ${{ secrets.DOCKER_USERNAME }}/sepsis-icu-model:ci-${{ github.run_number }} || true
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/sepsis-icu-model:latest || true
+          docker push ${{ secrets.DOCKER_USERNAME }}/sepsis-icu-model:ci-${{ github.run_number }} || true
+
+      - name: Upload artifacts to GitHub
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mlflow-artifacts-${{ github.run_number }}
+          path: MLProject/mlruns/
+          retention-days: 30
