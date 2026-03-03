@@ -36,7 +36,5 @@ entry_points:
         type: str
         default: ""
 
-    command: >-
-      python modelling.py --n_estimators {n_estimators} --max_depth {max_depth} --learning_rate {learning_rate} --n_trials {n_trials} --model_type {model_type} --data_dir {data_dir} --output_dir {output_dir}
-      {% if no_dagshub %} --no_dagshub {% endif %}
+    command: "python modelling.py --n_estimators {n_estimators} --max_depth {max_depth} --learning_rate {learning_rate} --n_trials {n_trials} --model_type {model_type} --data_dir {data_dir} --output_dir {output_dir} --no_dagshub {no_dagshub}"
 

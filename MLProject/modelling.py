@@ -48,7 +48,7 @@ def parse_args():
                    help='DagsHub username (ambil dari env kalau ada)')
     p.add_argument('--dagshub_repo',     type=str, default=os.getenv('DAGSHUB_REPO', ''),
                    help='DagsHub repository name')
-    p.add_argument('--no_dagshub',       action='store_true',
+    p.add_argument('--no_dagshub',       type=lambda x: str(x).lower() == 'true', default=False,
                    help='Force simpan MLflow lokal')
     return p.parse_args()
 
