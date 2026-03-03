@@ -14,7 +14,7 @@ on:
       n_trials:
         description: 'Optuna trials'
         required: true
-        default: '20'
+        default: '5'
 
 jobs:
   train:
@@ -22,8 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Run actions/checkout@v3
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.12.7
         uses: actions/setup-python@v4
@@ -46,12 +45,11 @@ jobs:
           cd MLProject
           python preprocessing_ci.py --output_dir=sepsis_preprocessing
 
-      - name: Verify Preprocessed Files Exist
+      - name: Verify Preprocessed Data
         run: |
-          echo "Checking preprocessed files..."
-          ls -lh MLProject/sepsis_preprocessing/ || echo "❌ Folder sepsis_preprocessing TIDAK tercipta!"
-          test -f MLProject/sepsis_preprocessing/sepsis_preprocessing_train.csv && echo "✅ train.csv OK" || echo "❌ train.csv TIDAK ada!"
-          test -f MLProject/sepsis_preprocessing/sepsis_preprocessing_test.csv && echo "✅ test.csv OK" || echo "❌ test.csv TIDAK ada!"
+          ls -la MLProject/sepsis_preprocessing || echo "Folder gak ada!"
+          if [ -f "MLProject/sepsis_preprocessing/sepsis_preprocessing_train.csv" ]; then echo "✅ File train ada"; else echo "❌ File train gak ada"; fi
+          if [ -f "MLProject/sepsis_preprocessing/sepsis_preprocessing_test.csv" ]; then echo "✅ File test ada"; else echo "❌ File test gak ada"; fi
 
       - name: Set MLflow Tracking URI
         env:
@@ -64,15 +62,15 @@ jobs:
 
       - name: Run mlflow project
         env:
-          DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
-          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
           MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
+          mkdir -p artifacts
           cd MLProject
           mlflow run . --experiment-name "Sepsis_ICU_CI" --env-manager=local \
             -P model_type=${{ github.event.inputs.model_type || 'xgboost' }} \
-            -P n_trials=${{ github.event.inputs.n_trials || '20' }} \
+            -P n_trials=${{ github.event.inputs.n_trials || '5' }} \
             -P data_dir=sepsis_preprocessing \
             -P output_dir=../artifacts \
             -P no_dagshub=false \
@@ -85,10 +83,6 @@ jobs:
           RUN_ID=$(find mlruns -name "meta.yaml" 2>/dev/null | xargs grep -l "run_id" 2>/dev/null | head -1 | xargs dirname | xargs basename 2>/dev/null || echo "no-run-id")
           echo "MLFLOW_RUN_ID=$RUN_ID" >> $GITHUB_ENV
           echo "Latest run ID: $RUN_ID"
-
-      - name: Install Python dependencies
-        run: |
-          pip install google-auth google-auth-httplib2 google-api-python-client
 
       - name: Upload to Google Drive
         env:
@@ -109,7 +103,7 @@ jobs:
           if [ -n "$MODEL_PATH" ]; then
             mlflow models build-docker -m "$MODEL_PATH" -n ${{ secrets.DOCKER_USERNAME }}/sepsis-icu-model --enable-mlserver || true
           else
-            docker build -t ${{ secrets.DOCKER_USERNAME }}/sepsis-icu-model:latest . || true
+            echo "No model to build Docker"
           fi
 
       - name: Log in to Docker Hub
@@ -132,5 +126,5 @@ jobs:
         if: always()
         with:
           name: mlflow-artifacts-${{ github.run_number }}
-          path: MLProject/mlruns/
+          path: artifacts/
           retention-days: 30

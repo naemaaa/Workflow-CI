@@ -238,13 +238,17 @@ def train_xgboost(X_train, X_test, y_train, y_test, args, output_dir):
             'random_state'     : 42,
             'n_jobs'           : -1,
         }
+        print(f"  Trial {trial.number}: params={p}", flush=True)
         m = xgb.XGBClassifier(**p)
         m.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=False)
-        return roc_auc_score(y_test, m.predict_proba(X_test)[:, 1])
+        auc = roc_auc_score(y_test, m.predict_proba(X_test)[:, 1])
+        print(f"  Trial {trial.number}: AUC={auc:.4f}", flush=True)
+        return auc
 
     study = optuna.create_study(direction='maximize',
                                  sampler=optuna.samplers.TPESampler(seed=42))
     study.optimize(objective, n_trials=args.n_trials, show_progress_bar=True)
+    print(f"✅ XGBoost Optuna done! Best AUC: {study.best_value:.4f}", flush=True)
 
     best_params = study.best_params
     best_params.update({
@@ -281,13 +285,17 @@ def train_random_forest(X_train, X_test, y_train, y_test, args, output_dir):
             'random_state'     : 42,
             'n_jobs'           : -1,
         }
+        print(f"  Trial {trial.number}: params={p}", flush=True)
         m = RandomForestClassifier(**p)
         m.fit(X_train, y_train)
-        return roc_auc_score(y_test, m.predict_proba(X_test)[:, 1])
+        auc = roc_auc_score(y_test, m.predict_proba(X_test)[:, 1])
+        print(f"  Trial {trial.number}: AUC={auc:.4f}", flush=True)
+        return auc
 
     study = optuna.create_study(direction='maximize',
                                  sampler=optuna.samplers.TPESampler(seed=42))
     study.optimize(objective, n_trials=args.n_trials, show_progress_bar=True)
+    print(f"✅ RandomForest Optuna done! Best AUC: {study.best_value:.4f}", flush=True)
 
     best_params = study.best_params
     best_params.update({'class_weight': 'balanced', 'random_state': 42, 'n_jobs': -1})
@@ -348,7 +356,7 @@ def log_to_mlflow(model, model_name, y_test, y_prob, y_pred_opt,
                                           safe_name, output_dir)
         if fi_path: artifacts.append(fi_path)
 
-        shap_bar, shap_bee = save_shap(model, X_test.iloc[:500], safe_name, output_dir)
+        shap_bar, shap_bee = save_shap(model, X_test.iloc[:100], safe_name, output_dir)
         for p in [shap_bar, shap_bee]:
             if p: artifacts.append(p)
 
