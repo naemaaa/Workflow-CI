@@ -42,10 +42,7 @@ jobs:
           pip install mlflow==2.19.0 scikit-learn xgboost imbalanced-learn optuna shap pandas numpy matplotlib seaborn dagshub psutil
 
       - name: Run Preprocessing
-        run: |
-          cd MLProject
-          python preprocessing_ci.py --data_dir ./training_data --output_dir ./sepsis_preprocessing
-          ls -lh sepsis_preprocessing/
+        run: python MLProject/preprocessing_ci.py --output_dir=MLProject/sepsis_preprocessing 
 
       - name: Set MLflow Tracking URI
         env:
