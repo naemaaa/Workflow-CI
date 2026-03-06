@@ -338,8 +338,11 @@ def train_random_forest(X_train, X_test, y_train, y_test, args, output_dir):
 def log_to_mlflow(model, model_name, y_test, y_prob, y_pred, output_dir):
     try:
         import numpy as np
-        # BERSIHKAN SEMUA NUMPY TYPE (INI PENYEBAB ERROR)
-        log_params = {}  # Placeholder, since no params to log in simplified version
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+        from sklearn.metrics import confusion_matrix, accuracy_score, roc_auc_score
+        
+        # Bersihkan tipe numpy (fix INVALID_PARAMETER_VALUE)
         clean_params = {}
         for k, v in log_params.items():
             if isinstance(v, (np.floating, np.integer)):
@@ -355,14 +358,17 @@ def log_to_mlflow(model, model_name, y_test, y_prob, y_pred, output_dir):
             mlflow.log_metric("auc", roc_auc_score(y_test, y_prob))
             mlflow.sklearn.log_model(model, "model")
 
-            # Confusion matrix
+            # Plot confusion matrix
             cm = confusion_matrix(y_test, y_pred)
             plt.figure(figsize=(8,6))
             sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+            plt.title(f'Confusion Matrix - {model_name}')
+            plt.ylabel('Actual')
+            plt.xlabel('Predicted')
             plt.savefig(os.path.join(output_dir, "confusion_matrix.png"))
             mlflow.log_artifact(os.path.join(output_dir, "confusion_matrix.png"))
-
-            print("✅ Semua artifact berhasil di-log!")
+            
+            print("✅ Confusion matrix berhasil di-log ke MLflow")
             return mlflow.active_run().info.run_id
 
     except Exception as e:
