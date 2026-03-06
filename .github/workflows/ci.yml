@@ -83,6 +83,19 @@ jobs:
           ls -la artifacts || echo "Artifacts folder gak ada"
           ls -la MLProject/mlruns || echo "MLflow runs gak ada"
 
+      - name: Upload to Google Drive
+        env:
+          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+        run: |
+          curl https://rclone.org/install.sh | sudo bash || true
+          mkdir -p ~/.config/rclone
+          if [ -n "$RCLONE_CONFIG" ]; then
+            echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+            rclone copy artifacts gdrive:Sepsis_Artifacts/$(date +%Y%m%d_%H%M%S) --progress || echo "Drive skip"
+          else
+            echo "Skip Drive (secret belum diisi)"
+          fi
+
       - name: Get latest MLflow run_id
         run: |
           cd MLProject

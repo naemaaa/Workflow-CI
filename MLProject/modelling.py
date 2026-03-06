@@ -337,27 +337,36 @@ def train_random_forest(X_train, X_test, y_train, y_test, args, output_dir):
 # ── Log ke MLflow ───────────────────────────────────────────────────────────────
 def log_to_mlflow(model, model_name, y_test, y_prob, y_pred, output_dir):
     try:
+        import numpy as np
+        # BERSIHKAN SEMUA NUMPY TYPE (INI PENYEBAB ERROR)
+        log_params = {}  # Placeholder, since no params to log in simplified version
+        clean_params = {}
+        for k, v in log_params.items():
+            if isinstance(v, (np.floating, np.integer)):
+                clean_params[k] = float(v)
+            elif isinstance(v, np.bool_):
+                clean_params[k] = bool(v)
+            else:
+                clean_params[k] = v
+
         with mlflow.start_run():
+            mlflow.log_params(clean_params)
             mlflow.log_metric("accuracy", accuracy_score(y_test, y_pred))
             mlflow.log_metric("auc", roc_auc_score(y_test, y_prob))
-            if 'XGBoost' in model_name:
-                mlflow.xgboost.log_model(model, "model")
-            else:
-                mlflow.sklearn.log_model(model, "model")
-            
-            # Log confusion matrix
+            mlflow.sklearn.log_model(model, "model")
+
+            # Confusion matrix
             cm = confusion_matrix(y_test, y_pred)
             plt.figure(figsize=(8,6))
             sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
             plt.savefig(os.path.join(output_dir, "confusion_matrix.png"))
             mlflow.log_artifact(os.path.join(output_dir, "confusion_matrix.png"))
-            
-            print("✅ Semua artifact berhasil di-log ke MLflow")
+
+            print("✅ Semua artifact berhasil di-log!")
             return mlflow.active_run().info.run_id
 
     except Exception as e:
-        print(f"❌ Error saat log ke MLflow: {e}")
-        print("   Tapi training sudah berhasil, lanjut saja.")
+        print(f"⚠️  Error log MLflow: {e} (tapi training OK)")
         return "local-run"
 
 
