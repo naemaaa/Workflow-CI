@@ -6,6 +6,22 @@ import warnings
 warnings.filterwarnings('ignore')
 
 import numpy as np
+
+# MLflow helper to convert numpy/scalar types into native Python types that the
+# REST API will accept. Without this we sometimes see INVALID_PARAMETER_VALUE
+# errors when passing np.float64, np.int64, etc.
+
+def _sanitize_for_mlflow(val):
+    if isinstance(val, np.generic):
+        return val.item()
+    if isinstance(val, (np.ndarray,)):
+        return val.tolist()
+    if isinstance(val, dict):
+        return {k: _sanitize_for_mlflow(v) for k, v in val.items()}
+    if isinstance(val, (list, tuple)):
+        return type(val)(_sanitize_for_mlflow(v) for v in val)
+    return val
+
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
@@ -48,7 +64,7 @@ def parse_args():
                    help='DagsHub username (ambil dari env kalau ada)')
     p.add_argument('--dagshub_repo',     type=str, default=os.getenv('DAGSHUB_REPO', ''),
                    help='DagsHub repository name')
-    p.add_argument('--no_dagshub',       type=lambda x: str(x).lower() == 'true', default=False,
+    p.add_argument('--no_dagshub', action='store_true', default=False,
                    help='Force simpan MLflow lokal')
     return p.parse_args()
 
@@ -329,10 +345,19 @@ def log_to_mlflow(model, model_name, y_test, y_prob, y_pred_opt,
         log_params = {k: v for k, v in best_params.items()
                       if k not in ['use_label_encoder', 'eval_metric',
                                    'n_jobs', 'random_state']}
+        # Fix numpy type biar MLflow gak error
+        import numpy as np
+        log_params = {
+            k: float(v) if isinstance(v, (np.floating, np.integer)) else 
+               bool(v) if isinstance(v, np.bool_) else v 
+            for k, v in log_params.items()
+        }
+        # sanitize values before sending to MLflow (e.g. np.float64 -> float)
+        log_params = {k: _sanitize_for_mlflow(v) for k, v in log_params.items()}
         mlflow.log_params(log_params)
         mlflow.log_param('model_type',       model_name)
         mlflow.log_param('n_trials',         args.n_trials)
-        mlflow.log_param('optimal_threshold', best_t)
+        mlflow.log_param('optimal_threshold', _sanitize_for_mlflow(best_t))
         mlflow.log_param('tuning_method',    'optuna_tpe')
         mlflow.log_param('train_shape',      str(X_train.shape))
         mlflow.log_param('test_shape',       str(X_test.shape))
