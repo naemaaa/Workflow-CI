@@ -84,17 +84,15 @@ jobs:
           ls -la MLProject/mlruns || echo "MLflow runs gak ada"
 
       - name: Upload to Google Drive
+        if: always()
         env:
           RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
         run: |
+          echo "=== Upload ke Google Drive ==="
           curl https://rclone.org/install.sh | sudo bash || true
           mkdir -p ~/.config/rclone
-          if [ -n "$RCLONE_CONFIG" ]; then
-            echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
-            rclone copy artifacts gdrive:Sepsis_Artifacts/$(date +%Y%m%d_%H%M%S) --progress || echo "Drive skip"
-          else
-            echo "Skip Drive (secret belum diisi)"
-          fi
+          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+          rclone copy artifacts gdrive:Sepsis_Artifacts/$(date +%Y%m%d_%H%M%S) --progress || echo "Drive upload dilewati (tapi workflow tetap lanjut)"
 
       - name: Get latest MLflow run_id
         run: |
