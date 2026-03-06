@@ -72,10 +72,10 @@ jobs:
           cd MLProject
           mlflow run . --experiment-name "Sepsis_ICU_CI" --env-manager=local \
             -P model_type=${{ github.event.inputs.model_type || 'xgboost' }} \
-            -P n_trials=${{ github.event.inputs.n_trials || '1' }} \
+            -P n_trials=1 \
             -P data_dir=sepsis_preprocessing \
             -P output_dir=../artifacts \
-            -P no_dagshub=false
+            -P no_dagshub=true
 
       - name: Debug Artifacts
         run: |
