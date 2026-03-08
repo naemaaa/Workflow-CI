@@ -86,14 +86,16 @@ jobs:
           rclone copy artifacts gdrive:Sepsis_Artifacts/$(date +%Y%m%d_%H%M%S) --progress || echo "Drive upload dilewati (tapi workflow tetap lanjut)"
 
       - name: Get latest MLflow run_id
+        id: get_run_id
         run: |
           cd MLProject
           if [ -d "mlruns" ]; then
             RUN_ID=$(find mlruns -name "meta.yaml" | head -1 | xargs dirname | xargs basename 2>/dev/null || echo "no-run-id")
-            echo "MLFLOW_RUN_ID=$RUN_ID" >> $GITHUB_ENV
-            echo "Latest run ID: $RUN_ID"
+            echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+            echo "✅ Latest run ID: $RUN_ID"
           else
-            echo "⚠️ No mlruns directory found"
+            echo "run_id=local-run" >> $GITHUB_OUTPUT
+            echo "⚠️ No mlruns folder, using fallback"
           fi
 
       # Skip Google Drive for now - not required
