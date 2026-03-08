@@ -54,12 +54,11 @@ jobs:
 
       - name: Run mlflow project
         env:
+          MLFLOW_TRACKING_URI: https://naemaaa:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow
+          MLFLOW_TRACKING_USERNAME: naemaaa
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
           DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          export MLFLOW_TRACKING_URI="https://naemaaa:${DAGSHUB_TOKEN}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow"
-          export MLFLOW_TRACKING_USERNAME=naemaaa
-          export MLFLOW_TRACKING_PASSWORD=${DAGSHUB_TOKEN}
-          
           mkdir -p artifacts
           cd MLProject
           mlflow run . --experiment-name "Sepsis_ICU_CI" --env-manager=local \
