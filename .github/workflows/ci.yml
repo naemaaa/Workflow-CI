@@ -87,16 +87,25 @@ jobs:
 
       - name: Get latest MLflow run_id
         id: get_run_id
+        env:
+          MLFLOW_TRACKING_URI: https://naemaaa:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow
         run: |
-          cd MLProject
-          if [ -d "mlruns" ]; then
-            RUN_ID=$(find mlruns -name "meta.yaml" | head -1 | xargs dirname | xargs basename 2>/dev/null || echo "no-run-id")
-            echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-            echo "✅ Latest run ID: $RUN_ID"
-          else
-            echo "run_id=local-run" >> $GITHUB_OUTPUT
-            echo "⚠️ No mlruns folder, using fallback"
-          fi
+          python -c '
+import os
+import mlflow
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
+client = mlflow.MlflowClient()
+runs = client.search_runs(
+    experiment_ids=["0"], 
+    order_by=["attribute.start_time DESC"], 
+    max_results=1
+)
+run_id = runs[0].info.run_id if runs else "local-run"
+print(f"run_id={run_id}")
+with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+    f.write(f"run_id={run_id}\n")
+print(f"✅ Captured real run_id from DagsHub: {run_id}")
+'
 
       # Skip Google Drive for now - not required
       # - name: Upload to Google Drive
