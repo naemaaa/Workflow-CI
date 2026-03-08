@@ -87,54 +87,38 @@ jobs:
 
       - name: Get latest MLflow run_id
         id: get_run_id
-        env:
-          MLFLOW_TRACKING_URI: https://naemaaa:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow
-        run: |-
-          python << 'EOF'
+        run: |
+          echo "=== Mencari run_id dari DagsHub ==="
+          RUN_ID=$(mlflow runs list --experiment-name "Sepsis_ICU_CI" --max-results 1 | awk 'NR==2 {print $1}' || echo "no-run")
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "✅ Run ID yang berhasil diambil: $RUN_ID"
 
-      
-          import mlflow
-          import os
-          mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
-          client = mlflow.MlflowClient()
-          exp = client.get_experiment_by_name("Sepsis_ICU_CI")
-          if exp:
-              runs = client.search_runs([exp.experiment_id], max_results=1, order_by=["attribute.start_time DESC"])
-              run_id = runs[0].info.run_id if runs else "no-run"
-          else:
-              run_id = "no-run"
-          print("run_id=" + run_id)
-          with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
-              f.write("run_id=" + run_id + "\n")
-          print("✅ Captured real run_id from DagsHub: " + run_id)
-          EOF
+      - name: Build Docker Model
+        run: |
+          echo "=== Build Docker Image ==="
+          mlflow models build-docker \
+            -m "runs:/${{ steps.get_run_id.outputs.run_id }}/model" \
+            --name sepsis-icu-model \
+            --enable-mlserver
 
-                - name: Build Docker Model
-                  run: |
-                    echo "=== Build Docker Image ==="
-                    mlflow models build-docker \
-                      -m "runs:/${{ steps.get_run_id.outputs.run_id }}/model" \
-                      --name sepsis-icu-model \
-                      --enable-mlserver
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-                - name: Login to Docker Hub
-                  uses: docker/login-action@v3
-                  with:
-                    username: ${{ secrets.DOCKER_USERNAME }}
-                    password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Tag Docker Image
+        run: docker tag sepsis-icu-model:latest naimaaaa/sepsis-icu-model:latest
 
-                - name: Tag Docker Image
-                  run: docker tag sepsis-icu-model:latest naimaaaa/sepsis-icu-model:latest
+      - name: Push Docker Image
+        run: docker push naimaaaa/sepsis-icu-model:latest
 
-                - name: Push Docker Image
-                  run: docker push naimaaaa/sepsis-icu-model:latest
-
-                - name: Upload artifacts to GitHub
-                  uses: actions/upload-artifact@v4
-                  if: always()
-                  with:
-                    name: sepsis-artifacts-${{ github.run_number }}
-                    path: |
-                      artifacts/
-                      MLProject/mlruns/
-                    retention-days: 30
+      - name: Upload artifacts to GitHub
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sepsis-artifacts-${{ github.run_number }}
+          path: |
+            artifacts/
+            MLProject/mlruns/
+          retention-days: 30
