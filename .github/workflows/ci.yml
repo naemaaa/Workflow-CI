@@ -52,26 +52,19 @@ jobs:
           if [ -f "MLProject/sepsis_preprocessing/sepsis_preprocessing_train.csv" ]; then echo "✅ File train ada"; else echo "❌ File train gak ada"; fi
           if [ -f "MLProject/sepsis_preprocessing/sepsis_preprocessing_test.csv" ]; then echo "✅ File test ada"; else echo "❌ File test gak ada"; fi
 
-      - name: Set MLflow Tracking URI
-        run: |
-          echo "MLFLOW_TRACKING_URI=https://naemaaa:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow" >> $GITHUB_ENV
-          echo "MLFLOW_TRACKING_USERNAME=naemaaa" >> $GITHUB_ENV
-          echo "MLFLOW_TRACKING_PASSWORD=${{ secrets.DAGSHUB_TOKEN }}" >> $GITHUB_ENV
-          echo "✅ MLFLOW_TRACKING_URI sudah di-set dengan token BARU"
-
       - name: Run mlflow project
         env:
-          MLFLOW_TRACKING_URI: https://naemaaa:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow
-          MLFLOW_TRACKING_USERNAME: naemaaa
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
           DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
-          IS_CI: true
         run: |
+          export MLFLOW_TRACKING_URI="https://naemaaa:${DAGSHUB_TOKEN}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow"
+          export MLFLOW_TRACKING_USERNAME=naemaaa
+          export MLFLOW_TRACKING_PASSWORD=${DAGSHUB_TOKEN}
+          
           mkdir -p artifacts
           cd MLProject
           mlflow run . --experiment-name "Sepsis_ICU_CI" --env-manager=local \
-            -P model_type=${{ github.event.inputs.model_type || 'xgboost' }} \
-            -P n_trials=${{ github.event.inputs.n_trials || '1' }} \
+            -P model_type=xgboost \
+            -P n_trials=1 \
             -P data_dir=sepsis_preprocessing \
             -P output_dir=../artifacts \
             -P no_dagshub=false
