@@ -20,7 +20,7 @@ jobs:
   train:
     name: Train Model
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v3
@@ -51,6 +51,14 @@ jobs:
           ls -la MLProject/sepsis_preprocessing || echo "Folder gak ada!"
           if [ -f "MLProject/sepsis_preprocessing/sepsis_preprocessing_train.csv" ]; then echo "✅ File train ada"; else echo "❌ File train gak ada"; fi
           if [ -f "MLProject/sepsis_preprocessing/sepsis_preprocessing_test.csv" ]; then echo "✅ File test ada"; else echo "❌ File test gak ada"; fi
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: Run mlflow project
         env:
