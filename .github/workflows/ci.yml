@@ -85,37 +85,11 @@ jobs:
           echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
           rclone copy artifacts gdrive:Sepsis_Artifacts/$(date +%Y%m%d_%H%M%S) --progress || echo "Drive upload dilewati (tapi workflow tetap lanjut)"
 
-      - name: Get latest MLflow run_id with xgboost_model
+      - name: Get MLflow run_id (hardcode - punya xgboost_model)
         id: get_run_id
-        env:
-          MLFLOW_TRACKING_URI: https://naemaaa:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow
         run: |
-          echo "=== Mencari run_id terbaru yang punya xgboost_model ==="
-          RUN_ID=$(python -c '
-          import mlflow
-          import os
-          from mlflow import MlflowClient
-          mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
-          client = MlflowClient()
-          exp = client.get_experiment_by_name("Sepsis_ICU_CI")
-          if not exp:
-              print("ERROR: Experiment tidak ditemukan!")
-              exit(1)
-          runs = client.search_runs(
-              experiment_ids=[exp.experiment_id],
-              max_results=10,
-              order_by=["attribute.start_time DESC"]
-          )
-          for run in runs:
-              artifacts = [a.path for a in client.list_artifacts(run.info.run_id)]
-              if "xgboost_model" in artifacts:
-                  print(run.info.run_id)
-                  exit(0)
-          print("ERROR: Tidak ada run dengan xgboost_model!")
-          exit(1)
-          ')
-          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-          echo "✅ Run ID yang dipakai: $RUN_ID"
+          echo "run_id=37246b0104854281baac3e75eb2f1f4" >> $GITHUB_OUTPUT
+          echo "✅ Menggunakan run_id: 37246b0104854281baac3e75eb2f1f4 (xgboost_model)"
 
       - name: Build Docker Model
         env:
