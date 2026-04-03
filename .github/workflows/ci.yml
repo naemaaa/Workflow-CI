@@ -90,24 +90,30 @@ jobs:
         env:
           MLFLOW_TRACKING_URI: https://naemaaa:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow
         run: |
-          echo "=== Mencari run_id dari DagsHub ==="
+          echo "=== Mencari run_id terbaru dari experiment Sepsis_ICU_CI ==="
           RUN_ID=$(python -c '
           import mlflow
           import os
           mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
           client = mlflow.MlflowClient()
-          runs = client.search_runs(experiment_ids=["0"], max_results=1, order_by=["attribute.start_time DESC"])
+          exp = client.get_experiment_by_name("Sepsis_ICU_CI")
+          if exp is None:
+              print("ERROR: Experiment Sepsis_ICU_CI tidak ditemukan!")
+              exit(1)
+          runs = client.search_runs(
+              experiment_ids=[exp.experiment_id],
+              max_results=1,
+              order_by=["attribute.start_time DESC"]
+          )
           run_id = runs[0].info.run_id if runs else "no-run"
           print(run_id)
           ' || echo "no-run")
-                    echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-                    echo "✅ Run ID yang berhasil diambil: $RUN_ID"
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "✅ Run ID yang digunakan: $RUN_ID"
 
       - name: Build Docker Model
         env:
           MLFLOW_TRACKING_URI: https://naemaaa:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow
-          MLFLOW_TRACKING_USERNAME: naemaaa
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           echo "=== Build Docker Image ==="
           echo "Using run_id: ${{ steps.get_run_id.outputs.run_id }}"
@@ -115,6 +121,7 @@ jobs:
           mlflow models build-docker \
             -m "runs:/${{ steps.get_run_id.outputs.run_id }}/model" \
             --name naimaaaa/sepsis-icu-model \
+            --no-conda \
             --enable-mlserver
 
       - name: Login to Docker Hub
@@ -124,7 +131,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Tag Docker Image
-        run: docker tag sepsis-icu-model:latest naimaaaa/sepsis-icu-model:latest
+        run: docker tag naimaaaa/sepsis-icu-model:latest naimaaaa/sepsis-icu-model:latest
 
       - name: Push Docker Image
         run: docker push naimaaaa/sepsis-icu-model:latest
