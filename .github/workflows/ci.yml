@@ -93,13 +93,23 @@ jobs:
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           echo "=== Mencari run_id dari DagsHub ==="
-          RUN_ID=$(mlflow runs list --experiment-name "Sepsis_ICU_CI" --max-results 1 | awk 'NR==2 {print $1}' || echo "no-run")
+          RUN_ID=$(mlflow runs list --experiment-name "Sepsis_ICU_CI" --max-results 1 | awk 'NR==2 {print $1}')
+          echo "Raw RUN_ID: '$RUN_ID'"
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "no-run" ]; then
+            echo "❌ Gagal mendapatkan run_id dari DagsHub!"
+            exit 1
+          fi
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "✅ Run ID yang berhasil diambil: $RUN_ID"
 
       - name: Build Docker Model
+        env:
+          MLFLOW_TRACKING_URI: https://naemaaa:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow
+          MLFLOW_TRACKING_USERNAME: naemaaa
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           echo "=== Build Docker Image ==="
+          echo "Using run_id: ${{ steps.get_run_id.outputs.run_id }}"
           mlflow models build-docker \
             -m "runs:/${{ steps.get_run_id.outputs.run_id }}/model" \
             --name sepsis-icu-model \
