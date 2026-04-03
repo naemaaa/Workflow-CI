@@ -87,11 +87,21 @@ jobs:
 
       - name: Get latest MLflow run_id
         id: get_run_id
+        env:
+          MLFLOW_TRACKING_URI: https://naemaaa:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/naemaaa/Sepsis-ICU-MLflow.mlflow
         run: |
           echo "=== Mencari run_id dari DagsHub ==="
-          RUN_ID=$(mlflow runs list --experiment-id 0 --max-results 1 | awk 'NR==2 {print $1}' || echo "no-run")
-          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-          echo "✅ Run ID yang berhasil diambil: $RUN_ID"
+          RUN_ID=$(python -c '
+          import mlflow
+          import os
+          mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
+          client = mlflow.MlflowClient()
+          runs = client.search_runs(experiment_ids=["0"], max_results=1, order_by=["attribute.start_time DESC"])
+          run_id = runs[0].info.run_id if runs else "no-run"
+          print(run_id)
+          ' || echo "no-run")
+                    echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+                    echo "✅ Run ID yang berhasil diambil: $RUN_ID"
 
       - name: Build Docker Model
         env:
