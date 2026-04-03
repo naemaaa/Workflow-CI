@@ -99,7 +99,7 @@ jobs:
           echo "Using run_id: ${{ steps.get_run_id.outputs.run_id }}"
           
           mlflow models build-docker \
-            -m "runs:/${{ steps.get_run_id.outputs.run_id }}/xgboost_model" \   # ← ini yang diubah
+            -m "runs:/${{ steps.get_run_id.outputs.run_id }}/xgboost_model" \
             --name naimaaaa/sepsis-icu-model \
             --enable-mlserver
 
